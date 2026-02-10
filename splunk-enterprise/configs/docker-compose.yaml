@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  splunk:
+    image: splunk/splunk:latest
+    container_name: splunk-enterprise
+    ports:
+      - "8000:8000"    # Web UI
+      - "8088:8088"    # HEC receiver
+      - "8089:8089"    # Splunk management port
+    environment:
+      - SPLUNK_START_ARGS=--accept-license
+      - SPLUNK_USER=root
+      - SPLUNK_PASSWORD=SplunkAdmin123!
+      - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
+    volumes:
+      - splunk_data:/opt/splunk/var
+      - ./configs/hec-config.yaml:/opt/splunk/etc/apps/search/local/hec-config.yaml
+      - ./inputs/inputs.conf:/opt/splunk/etc/system/local/inputs.conf
+    networks:
+      - otel-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    container_name: otel-collector
+    ports:
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+      - "8888:8888"    # Prometheus metrics
+      - "8889:8889"    # Prometheus scrape
+    volumes:
+      - ./configs/hec-config.yaml:/etc/otel-collector-config.yaml
+    command: [--config=/etc/otel-collector-config.yaml]
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+    networks:
+      - otel-network
+    depends_on:
+      - splunk
+    restart: unless-stopped
+
+volumes:
+  splunk_data:
+    driver: local
+
+networks:
+  otel-network:
+    driver: bridge
