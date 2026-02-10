@@ -1,0 +1,72 @@
+# Splunk Enterprise HEC Configuration
+# HTTP Event Collector setup for receiving OTEL telemetry data
+
+splunk:
+  endpoint: "https://localhost:8088"
+  # For local development
+  insecure_skip_verify: true
+  
+  # HEC Token - Change this to your actual HEC token
+  hec_token: "11111111-1111-1111-1111-111111111111"
+  
+  # Source, Source Type, and Index settings
+  source: "otel/collector"
+  sourcetype: "otel:metrics"
+  index: "main"
+
+receivers:
+  # Telemetry receivers for OTEL data
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+  
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'prometheus'
+          static_configs:
+            - targets: ['localhost:8889']
+
+processors:
+  # Data processing
+  batch:
+    send_batch_size: 256
+    timeout: 10s
+  
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+
+exporters:
+  # Splunk HEC exporter
+  splunk_hec:
+    endpoint: "https://localhost:8088/services/collector"
+    token: "11111111-1111-1111-1111-111111111111"
+    source: "otel/collector"
+    sourcetype: "otel:metrics"
+    index: "main"
+    insecure_skip_verify: true
+  
+  # Optional: Also export to logging for debugging
+  logging:
+    loglevel: info
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [splunk_hec, logging]
+    
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [memory_limiter, batch]
+      exporters: [splunk_hec, logging]
+    
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [splunk_hec, logging]
