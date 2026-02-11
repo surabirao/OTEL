@@ -1,0 +1,55 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otel-collector'
+          static_configs:
+            - targets: ['0.0.0.0:8889']
+
+processors:
+  batch:
+    send_batch_size: 256
+    timeout: 10s
+
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+
+exporters:
+  splunk_hec:
+    endpoint: "http://splunk-enterprise:8088/services/collector"
+    token: "11111111-1111-1111-1111-111111111111"
+    source: "splunk-otel/collector"
+    sourcetype: "otel:metrics"
+    index: "main"
+  # Splunk HEC exporter
+
+  # Use the debug exporter instead of the deprecated logging exporter
+  debug: {}
+
+  prometheus:
+    endpoint: "0.0.0.0:8888"
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [splunk_hec, debug]
+
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [memory_limiter, batch]
+      exporters: [splunk_hec, debug, prometheus]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [splunk_hec, debug]

@@ -49,6 +49,18 @@ services:
     networks:
       - otel-network
 
+  loki:
+    image: grafana/loki:2.8.2
+    container_name: loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - otel-network
+
 volumes:
   grafana_storage:
     driver: local

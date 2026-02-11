@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  splunk-otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: splunk-otel-collector
+    ports:
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+      - "8888:8888"    # Prometheus metrics (optional)
+    volumes:
+      - ./configs/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    environment:
+      - SPLUNK_HEC_TOKEN=11111111-1111-1111-1111-111111111111
+      - SPLUNK_HEC_ENDPOINT=http://splunk-enterprise:8088
+    command: [--config=/etc/otel-collector-config.yaml]
+    networks:
+      otel-network:
+        aliases:
+          - otel-collector
+    restart: unless-stopped
+
+networks:
+  otel-network:
+    external: true

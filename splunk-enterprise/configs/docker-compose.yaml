@@ -15,8 +15,8 @@ services:
       - SPLUNK_GENERAL_TERMS=--accept-sgt-current-at-splunk-com
     volumes:
       - splunk_data:/opt/splunk/var
-      - ./configs/hec-config.yaml:/opt/splunk/etc/apps/search/local/hec-config.yaml
-      - ./inputs/inputs.conf:/opt/splunk/etc/system/local/inputs.conf
+      - ../configs/hec-config.yaml:/opt/splunk/etc/apps/search/local/hec-config.yaml:ro
+      - ../inputs/inputs.conf:/opt/splunk/etc/system/local/inputs.conf:ro
     networks:
       - otel-network
     restart: unless-stopped
